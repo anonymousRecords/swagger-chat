@@ -44,9 +44,9 @@ export default function MessageInput({
     }
   }, [apiKey, swaggerUrl]);
 
-  // useEffect(() => {
-  //   adjustTextareaHeight();
-  // }, [message]);
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [message]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

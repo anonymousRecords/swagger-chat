@@ -33,7 +33,7 @@ export default function ResponsiveChatInterface() {
     if (!isMobile && isDrawerOpen) {
       toggleDrawer(false);
     }
-  }, [isMobile, isDrawerOpen]);
+  }, [isMobile, isDrawerOpen, toggleDrawer]);
 
   const DesktopLayout = () => (
     <Split

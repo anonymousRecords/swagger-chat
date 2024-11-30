@@ -47,6 +47,7 @@ export default function SettingsFormNew({ className = '' }: { className?: string
       }
       return true;
     } catch (error) {
+      console.error('Swagger URL validation error:', error);
       return 'Failed to validate Swagger URL';
     }
   };

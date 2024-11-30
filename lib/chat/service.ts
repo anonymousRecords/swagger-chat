@@ -51,8 +51,14 @@ export class ChatService {
     }
   }
 
-  private isValidSwaggerDoc(doc: any): doc is OpenApi.IDocument {
-    return doc && (doc.swagger || doc.openapi) && doc.paths && typeof doc.paths === 'object';
+  private isValidSwaggerDoc(doc: unknown): doc is OpenApi.IDocument {
+    return (
+      doc !== null &&
+      typeof doc === 'object' &&
+      ('swagger' in doc || 'openapi' in doc) &&
+      'paths' in doc &&
+      typeof (doc as { paths: unknown }).paths === 'object'
+    );
   }
 
   private parseSwaggerDoc(doc: OpenApi.IDocument): string {

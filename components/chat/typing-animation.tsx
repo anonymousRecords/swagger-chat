@@ -11,10 +11,10 @@ const TypingAnimation = () => {
       await animate(
         '.first-line span',
         { opacity: 1, y: 0 },
-        { 
-          duration: 0.02, 
-          delay: stagger(0.04, { from: "first" }),
-          ease: "easeOut"
+        {
+          duration: 0.02,
+          delay: stagger(0.04, { from: 'first' }),
+          ease: 'easeOut',
         }
       );
 
@@ -23,20 +23,20 @@ const TypingAnimation = () => {
       await animate(
         '.second-line span',
         { opacity: 1, y: 0 },
-        { 
-          duration: 0.02, 
-          delay: stagger(0.04, { from: "first" }),
-          ease: "easeOut"
+        {
+          duration: 0.02,
+          delay: stagger(0.04, { from: 'first' }),
+          ease: 'easeOut',
         }
       );
 
       animate(
         '.cursor',
         { opacity: [0, 1] },
-        { 
+        {
           duration: 0.6,
           repeat: Infinity,
-          repeatType: "reverse"
+          repeatType: 'reverse',
         }
       );
     };
@@ -63,7 +63,10 @@ const TypingAnimation = () => {
               {char === ' ' ? '\u00A0' : char}
             </motion.span>
           ))}
-          <motion.span className="cursor inline-block w-[2px] h-[1.2em] bg-[#97E865] ml-1" initial={{ opacity: 0 }} />
+          <motion.span
+            className="cursor inline-block w-[2px] h-[1.2em] bg-[#97E865] ml-1"
+            initial={{ opacity: 0 }}
+          />
         </motion.span>
       </div>
     </div>

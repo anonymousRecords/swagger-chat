@@ -52,9 +52,9 @@ export default function ToastManager() {
   };
 
   useEffect(() => {
-    (window as any).showToast = addToast;
+    (window as Window & { showToast?: (message: string, type: ToastType) => void }).showToast = addToast;
     return () => {
-      delete (window as any).showToast;
+      delete (window as Window & { showToast?: (message: string, type: ToastType) => void }).showToast;
     };
   }, []);
 
