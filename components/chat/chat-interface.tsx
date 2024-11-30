@@ -40,13 +40,13 @@ export default function ResponsiveChatInterface() {
 
   const DesktopLayout = () => (
     <Split
-      className="split-container flex h-full"
+      className="split-container flex"
       sizes={[30, 70]}
       minSize={[300, 500]}
       gutterSize={4}
       snapOffset={100}
     >
-      <div className="h-full min-w-[300px] overflow-auto bg-[#121212]">
+      <div className="min-w-[300px] overflow-auto bg-[#121212]">
         <SwaggerPanel />
       </div>
       <ChatArea />
@@ -54,7 +54,7 @@ export default function ResponsiveChatInterface() {
   );
 
   const ChatArea = () => (
-    <div className="flex h-full flex-1 flex-col overflow-hidden bg-[#121212]">
+    <div className="flex h-full flex-1 flex-col bg-[#121212]">
       <div className="flex items-center justify-between border-b border-[#2E2E2E] p-4">
         <div className="flex items-center gap-3">
           <Image src="/logo.svg" alt="Swagger Chat" width={32} height={32} />
@@ -79,7 +79,7 @@ export default function ResponsiveChatInterface() {
   );
 
   return (
-    <div className="h-screen w-full overflow-hidden">
+    <div className="h-screen w-full">
       {isMobile ? (
         <>
           <ChatArea />

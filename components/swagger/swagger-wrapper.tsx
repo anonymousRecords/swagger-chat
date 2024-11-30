@@ -19,7 +19,7 @@ export default function SwaggerWrapper({ url }: SwaggerWrapperProps) {
   }
 
   return (
-    <div className="swagger-wrapper bg-white">
+    <div className="swagger-wrapper p-4 bg-white overflow-auto">
       <SwaggerUI url={url} />
     </div>
   );
