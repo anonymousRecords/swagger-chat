@@ -46,7 +46,7 @@ export default function ResponsiveChatInterface() {
       gutterSize={4}
       snapOffset={100}
     >
-      <div className="h-full min-w-[300px] overflow-hidden bg-[#121212]">
+      <div className="h-full min-w-[300px] overflow-auto bg-[#121212]">
         <SwaggerPanel />
       </div>
       <ChatArea />
