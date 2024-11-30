@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global CSS */
+body {
+  background-color: #121212;
+}
+
+/* CSS Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+ul,
+li,
+ol {
+  list-style: none;
+}
+
+/* split */
+.split-container {
+  display: flex;
+  width: 100%;
+}
+
+.split-container > * {
+  overflow: hidden;
+}
+
+.gutter {
+  background-color: #f3f4f6;
+  position: relative;
+}
+
+.gutter:hover {
+  background-color: #e5e7eb;
+}
+
+.gutter::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 2rem;
+  background-color: #d1d5db;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.gutter:hover::after {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .split-container {
+    flex-direction: column;
+  }
+
+  .gutter {
+    height: 4px;
+  }
+
+  .gutter::after {
+    width: 2rem;
+    height: 4px;
+  }
+}
