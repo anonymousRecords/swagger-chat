@@ -52,13 +52,35 @@ export class ChatService {
   }
 
   private isValidSwaggerDoc(doc: unknown): doc is OpenApi.IDocument {
-    return (
-      doc !== null &&
-      typeof doc === 'object' &&
-      ('swagger' in doc || 'openapi' in doc) &&
-      'paths' in doc &&
-      typeof (doc as { paths: unknown }).paths === 'object'
-    );
+    if (!doc || typeof doc !== 'object') return false;
+
+    const typedDoc = doc as Record<string, unknown>;
+    
+    const version = typedDoc.swagger || typedDoc.openapi;
+    if (typeof version !== 'string') return false;
+    
+    if (!typedDoc.paths || typeof typedDoc.paths !== 'object') return false;
+    const paths = typedDoc.paths as Record<string, unknown>;
+    
+    const validMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'];
+    const hasValidEndpoints = Object.values(paths).every(path => {
+      if (!path || typeof path !== 'object') return false;
+      const methods = Object.keys(path as object);
+      return methods.some(method => validMethods.includes(method.toLowerCase()));
+    });
+    if (!hasValidEndpoints) return false;
+
+    if (!typedDoc.info || typeof typedDoc.info !== 'object') return false;
+    const info = typedDoc.info as Record<string, unknown>;
+    
+    if (
+      typeof info.title !== 'string' ||
+      typeof info.version !== 'string'
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
   private parseSwaggerDoc(doc: OpenApi.IDocument): string {

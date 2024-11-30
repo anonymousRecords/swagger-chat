@@ -17,7 +17,10 @@ const MobileDrawer = ({ isDrawerOpen, toggleDrawer }: MobileDrawerProps) => (
       <div className="flex h-full flex-col">
         <div className="flex items-center justify-between border-b border-[#2E2E2E] p-4">
           <h2 className="text-lg font-bold text-white">API Documentation</h2>
-          <button onClick={() => toggleDrawer(false)} className="text-white hover:text-gray-300">
+          <button
+            onClick={() => toggleDrawer(false)}
+            className="text-white hover:text-gray-300"
+          >
             <XMarkIcon className="text-white w-4 h-4" />
           </button>
         </div>
