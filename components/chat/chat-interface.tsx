@@ -25,9 +25,12 @@ export default function ResponsiveChatInterface() {
 
   const isDrawerOpen = params.drawer ?? false;
 
-  const toggleDrawer = useCallback((open: boolean) => {
-    setParams({ drawer: open });
-  }, [setParams]);
+  const toggleDrawer = useCallback(
+    (open: boolean) => {
+      setParams({ drawer: open });
+    },
+    [setParams]
+  );
 
   useEffect(() => {
     if (!isMobile && isDrawerOpen) {

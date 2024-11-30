@@ -63,10 +63,10 @@ export class ChatService {
     const paths = typedDoc.paths as Record<string, unknown>;
 
     const validMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'];
-    const hasValidEndpoints = Object.values(paths).every((path) => {
+    const hasValidEndpoints = Object.values(paths).every(path => {
       if (!path || typeof path !== 'object') return false;
       const methods = Object.keys(path as object);
-      return methods.some((method) => validMethods.includes(method.toLowerCase()));
+      return methods.some(method => validMethods.includes(method.toLowerCase()));
     });
     if (!hasValidEndpoints) return false;
 
@@ -107,7 +107,7 @@ export class ChatService {
 
           if (operation.parameters?.length) {
             result += '    파라미터:\n';
-            operation.parameters.forEach((param) => {
+            operation.parameters.forEach(param => {
               if ('name' in param) {
                 result += `      - ${param.name} (${param.in}) ${param.required ? '[필수]' : '[선택]'}\n`;
                 if (param.description) result += `        설명: ${param.description}\n`;
