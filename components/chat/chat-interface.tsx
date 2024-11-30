@@ -2,7 +2,7 @@
 
 import { Bars3Icon } from '@heroicons/react/24/solid';
 import Image from 'next/image';
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import Split from 'react-split';
 
 import useIsMobile from '@/hooks/useIsMobile';
@@ -25,9 +25,9 @@ export default function ResponsiveChatInterface() {
 
   const isDrawerOpen = params.drawer ?? false;
 
-  const toggleDrawer = (open: boolean) => {
+  const toggleDrawer = useCallback((open: boolean) => {
     setParams({ drawer: open });
-  };
+  }, [setParams]);
 
   useEffect(() => {
     if (!isMobile && isDrawerOpen) {

@@ -55,30 +55,25 @@ export class ChatService {
     if (!doc || typeof doc !== 'object') return false;
 
     const typedDoc = doc as Record<string, unknown>;
-    
+
     const version = typedDoc.swagger || typedDoc.openapi;
     if (typeof version !== 'string') return false;
-    
+
     if (!typedDoc.paths || typeof typedDoc.paths !== 'object') return false;
     const paths = typedDoc.paths as Record<string, unknown>;
-    
+
     const validMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'];
-    const hasValidEndpoints = Object.values(paths).every(path => {
+    const hasValidEndpoints = Object.values(paths).every((path) => {
       if (!path || typeof path !== 'object') return false;
       const methods = Object.keys(path as object);
-      return methods.some(method => validMethods.includes(method.toLowerCase()));
+      return methods.some((method) => validMethods.includes(method.toLowerCase()));
     });
     if (!hasValidEndpoints) return false;
 
     if (!typedDoc.info || typeof typedDoc.info !== 'object') return false;
     const info = typedDoc.info as Record<string, unknown>;
-    
-    if (
-      typeof info.title !== 'string' ||
-      typeof info.version !== 'string'
-    ) {
-      return false;
-    }
+
+    if (typeof info.title !== 'string' || typeof info.version !== 'string') return false;
 
     return true;
   }
@@ -112,7 +107,7 @@ export class ChatService {
 
           if (operation.parameters?.length) {
             result += '    파라미터:\n';
-            operation.parameters.forEach(param => {
+            operation.parameters.forEach((param) => {
               if ('name' in param) {
                 result += `      - ${param.name} (${param.in}) ${param.required ? '[필수]' : '[선택]'}\n`;
                 if (param.description) result += `        설명: ${param.description}\n`;
