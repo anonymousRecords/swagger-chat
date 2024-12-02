@@ -31,14 +31,6 @@ export const metadata: Metadata = {
     locale: 'ko_KR',
     type: 'website',
   },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Swagger Chat - API 문서와 대화하세요',
-    description:
-      'Swagger/OpenAPI 문서를 챗봇과 함께 더 쉽게 이해하세요. API 문서를 읽지 말고 대화하세요.',
-    images: ['/og-image.png'],
-    creator: '@minselim',
-  },
   alternates: {
     canonical: 'https://swagger-chat.vercel.app',
   },
