@@ -3,7 +3,7 @@ import { OpenApi } from '@samchon/openapi';
 import { SYSTEM_PROMPT } from '../../constants/prompt';
 import { createChatCompletion } from '../openai/client';
 
-import type { SimpleChatMessage, SimpleChatRole } from '../../types/opeanai';
+import type { SimpleChatMessage, SimpleChatRole } from '../../types/openai';
 
 export class ChatService {
   private swaggerDoc: OpenApi.IDocument | null = null;

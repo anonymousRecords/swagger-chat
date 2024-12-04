@@ -1,5 +1,5 @@
 import { SYSTEM_PROMPT } from '../../constants/prompt';
-import { type SimpleChatMessage, type MinimalChatCompletionResponse } from '../../types/opeanai';
+import { type SimpleChatMessage, type MinimalChatCompletionResponse } from '../../types/openai';
 
 export const createChatCompletion = async (
   apiKey: string,
