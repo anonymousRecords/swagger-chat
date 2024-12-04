@@ -1,23 +1,23 @@
-const SYSTEM_PROMPT = `당신은 Swagger/OpenAPI 문서를 기반으로 API 사용법을 안내하는 챗봇입니다.
-주어진 API 문서를 기반으로 다음과 같은 도움을 제공해주세요:
-1. API 엔드포인트의 존재 여부와 위치 확인
-2. API 요청/응답 파라미터에 대한 설명
-3. 간단한 API 사용 예시 제공
-4. API 관련 일반적인 질문에 대한 답변
-
-답변할 수 없는 내용이나 API 문서에 없는 내용에 대해서는 솔직히 모른다고 답변해주세요.`;
-
 import { OpenApi } from '@samchon/openapi';
+
+import { SYSTEM_PROMPT } from '../../constants/prompt';
+import { createChatCompletion } from '../openai/client';
+
+import type { SimpleChatMessage, SimpleChatRole } from '../../types/openai';
 
 export class ChatService {
   private swaggerDoc: OpenApi.IDocument | null = null;
   private parsedDoc: string | null = null;
-  private messages: Array<{ role: string; content: string }> = [];
+  private messages: SimpleChatMessage[] = [];
+  private locale: string;
 
   constructor(
     private apiKey: string,
-    private swaggerUrl: string
-  ) {}
+    private swaggerUrl: string,
+    locale: string = 'en'
+  ) {
+    this.locale = locale.toLowerCase().split('-')[0];
+  }
 
   async initialize() {
     if (!this.swaggerDoc) {
@@ -25,8 +25,8 @@ export class ChatService {
       this.parsedDoc = this.parseSwaggerDoc(this.swaggerDoc);
 
       this.messages = [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'system', content: `현재 API 문서 정보:\n${this.parsedDoc}` },
+        { role: 'system' as SimpleChatRole, content: SYSTEM_PROMPT },
+        { role: 'system' as SimpleChatRole, content: `API Documentation:\n${this.parsedDoc}` },
       ];
     }
   }
@@ -126,46 +126,11 @@ export class ChatService {
   async sendMessage(userMessage: string): Promise<string> {
     await this.initialize();
 
-    this.messages.push({ role: 'user', content: userMessage });
+    this.messages.push({ role: 'user' as SimpleChatRole, content: userMessage });
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo-0125',
-          messages: this.messages,
-          temperature: 0.7,
-          max_tokens: 1000,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-
-        if (response.status === 429) {
-          throw new Error(
-            'API 사용량 제한에 도달했습니다. OpenAI 계정의 결제 설정을 확인해주세요.'
-          );
-        }
-
-        if (response.status === 401) {
-          throw new Error('API 키가 유효하지 않습니다. OpenAI API 키를 확인해주세요.');
-        }
-
-        throw new Error(
-          error.error?.message || '예기치 못한 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
-        );
-      }
-
-      const data = await response.json();
-      const assistantMessage = data.choices[0].message.content;
-
-      this.messages.push({ role: 'assistant', content: assistantMessage });
-
+      const assistantMessage = await createChatCompletion(this.apiKey, this.messages, this.locale);
+      this.messages.push({ role: 'assistant' as SimpleChatRole, content: assistantMessage });
       return assistantMessage;
     } catch (error) {
       this.messages.pop();
@@ -173,7 +138,7 @@ export class ChatService {
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('OpenAI API 호출 중 오류가 발생했습니다.');
+      throw new Error('An error occurred while calling OpenAI API.');
     }
   }
 }

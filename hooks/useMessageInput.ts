@@ -39,8 +39,8 @@ export function useMessageInput({ setIsLoading }: UseMessageInputProps) {
 
     try {
       if (!chatServiceRef.current) {
-        chatServiceRef.current = new ChatService(apiKey, swaggerUrl);
-        await chatServiceRef.current.initialize();
+        const locale = typeof window !== 'undefined' ? window.navigator.language : 'en';
+        chatServiceRef.current = new ChatService(apiKey, swaggerUrl, locale);
       }
 
       const trimmedMessage = content.trim();
