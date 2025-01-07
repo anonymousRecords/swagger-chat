@@ -1,8 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { cn } from '@/lib/index';
 import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import { validateSwaggerFile } from '@/lib/utils/validation';
 import { useSwaggerStore } from '@/store/useSwaggerStore';
+
+const DEFAULT_ACCEPT = '.json,.yaml,.yml';
+const DEFAULT_MAX_SIZE = 5 * 1024 * 1024; // 5MB
+const DEFAULT_LABEL = 'Drag and drop or click to upload a file';
 
 interface FileUploaderProps {
   accept?: string;
@@ -12,11 +16,18 @@ interface FileUploaderProps {
   onSuccess?: () => void;
 }
 
+interface DragEventHandlers {
+  onDragEnter: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+}
+
 export function FileUploader({
-  accept = '.json,.yaml,.yml',
-  maxSize = 5 * 1024 * 1024,
+  accept = DEFAULT_ACCEPT,
+  maxSize = DEFAULT_MAX_SIZE,
   className,
-  label = 'Drag and drop or click to upload a file',
+  label = DEFAULT_LABEL,
   onSuccess,
 }: FileUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
@@ -24,9 +35,14 @@ export function FileUploader({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { setFile, setType } = useSwaggerStore();
 
-  const handleFileValidation = async (file: File): Promise<boolean> => {
+  const validateFile = useCallback((file: File): boolean => {
+    if (file.size > maxSize) {
+      setErrorMessage(`File size exceeds ${maxSize / 1024 / 1024}MB limit`);
+      return false;
+    }
+
     try {
-      const isValid = await validateSwaggerFile(file);
+      const isValid = validateSwaggerFile(file);
       if (!isValid) {
         setErrorMessage('Invalid Swagger file');
         return false;
@@ -36,42 +52,58 @@ export function FileUploader({
       setErrorMessage(error instanceof Error ? error.message : 'Upload failed');
       return false;
     }
-  };
+  }, [maxSize]);
 
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
+  const handleFileSuccess = useCallback((file: File) => {
+    setFile(file);
+    setType('file');
     setErrorMessage('');
+    onSuccess?.();
+  }, [setFile, setType, onSuccess]);
 
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      if (await handleFileValidation(file)) {
-        setFile(file);
-        setType('file');
-        onSuccess?.();
-      }
+  const processFile = useCallback(async (file: File) => {
+    if (validateFile(file)) {
+      handleFileSuccess(file);
     }
-  };
+  }, [validateFile, handleFileSuccess]);
 
-  const handleClick = () => {
-    fileInputRef.current?.click();
-  };
+  const handleDragEvents = useCallback((): DragEventHandlers => ({
+    onDragEnter: (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(true);
+    },
+    onDragOver: (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(true);
+    },
+    onDragLeave: (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+    },
+    onDrop: async (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+      setErrorMessage('');
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.dataTransfer.files[0];
+      if (file) await processFile(file);
+    },
+  }), [processFile]);
+
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (await handleFileValidation(file)) {
-        setFile(file);
-        setType('file');
-        onSuccess?.();
-      }
-    }
+    if (file) await processFile(file);
 
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
+  }, [processFile]);
+
+  const dragHandlers = handleDragEvents();
 
   return (
     <div className="w-full">
@@ -82,23 +114,8 @@ export function FileUploader({
           errorMessage && 'border-red-500',
           className
         )}
-        onDragEnter={(e: React.DragEvent) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setIsDragging(true);
-        }}
-        onDragOver={(e: React.DragEvent) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setIsDragging(true);
-        }}
-        onDragLeave={(e: React.DragEvent) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setIsDragging(false);
-        }}
-        onDrop={handleDrop}
-        onClick={handleClick}
+        {...dragHandlers}
+        onClick={() => fileInputRef.current?.click()}
       >
         <input
           ref={fileInputRef}
@@ -110,9 +127,7 @@ export function FileUploader({
 
         <ArrowUpTrayIcon className="w-6 h-6 mb-4 text-gray-400" aria-hidden="true" />
 
-        <p className="mb-2 text-sm text-gray-500">
-          {label}
-        </p>
+        <p className="mb-2 text-sm text-gray-500">{label}</p>
 
         {accept !== '*/*' && (
           <p className="text-xs text-gray-400">
@@ -135,5 +150,3 @@ export function FileUploader({
     </div>
   );
 }
-
-FileUploader.displayName = 'FileUploader';
