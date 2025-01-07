@@ -27,36 +27,35 @@ interface SchemaType {
 class SwaggerParser {
   private static readonly HTTP_METHODS: HttpMethod[] = ['get', 'post', 'put', 'delete', 'patch'];
 
-  private static normalizeType(type?: any): string | string[] | undefined {
+  static normalizeType(type?: any): string | string[] | undefined {
     if (!type) return undefined;
-    if (Array.isArray(type)) {
-      return type.filter((t): t is string => typeof t === 'string');
-    }
-    return typeof type === 'string' ? type : undefined;
+    return Array.isArray(type) ? type.filter(Boolean) : type;
   }
 
-  private static normalizeEnum(enumValues?: unknown[]): string[] | undefined {
-    if (!Array.isArray(enumValues)) return undefined;
-    return enumValues.filter((e): e is string => typeof e === 'string');
+  static normalizeEnum(enumValues?: unknown[]): string[] | undefined {
+    if (!enumValues?.length) return undefined;
+    return enumValues.filter((value): value is string => typeof value === 'string');
   }
 
-  private static convertProperties(
+  static convertProperties(
     properties?: Record<string, any>
   ): Record<string, SchemaType> | undefined {
-    if (!properties || typeof properties !== 'object') return undefined;
+    if (!properties) return undefined;
 
     const result: Record<string, SchemaType> = {};
     for (const [key, value] of Object.entries(properties)) {
-      const converted = SwaggerParser.convertToSchemaType(value);
+      const converted = this.convertToSchemaType(value);
       if (converted) {
         result[key] = converted;
       }
     }
-    return Object.keys(result).length > 0 ? result : undefined;
+    return Object.keys(result).length ? result : undefined;
   }
 
-  static convertToSchemaType(schema?: OpenApiV3_1.IJsonSchema | OpenApiV3_1.IJsonSchema.IReference): SchemaType | undefined {
-    if (!schema || typeof schema !== 'object') return undefined;
+  static convertToSchemaType(
+    schema?: OpenApiV3_1.IJsonSchema | OpenApiV3_1.IJsonSchema.IReference
+  ): SchemaType | undefined {
+    if (!schema) return undefined;
 
     try {
       const result: SchemaType = {};
@@ -68,61 +67,97 @@ class SwaggerParser {
 
       if (isBaseSchema(schema)) {
         if ('type' in schema) {
-          result.type = this.normalizeType(schema.type);
+          const normalizedType = this.normalizeType(schema.type);
+          if (normalizedType) {
+            result.type = normalizedType;
+          }
         }
 
-        if ('items' in schema) {
+        if ('items' in schema && schema.items) {
           const items = Array.isArray(schema.items) ? schema.items[0] : schema.items;
-          result.items = this.convertToSchemaType(items);
+          const convertedItems = this.convertToSchemaType(items);
+          if (convertedItems) {
+            result.items = convertedItems;
+          }
         }
 
         if ('properties' in schema && schema.properties) {
-          result.properties = this.convertProperties(schema.properties);
+          const convertedProperties = this.convertProperties(schema.properties);
+          if (convertedProperties) {
+            result.properties = convertedProperties;
+          }
         }
 
         if ('required' in schema && Array.isArray(schema.required)) {
-          result.required = schema.required;
+          result.required = schema.required.filter(Boolean);
         }
 
-        if ('description' in schema) {
-          result.description = schema.description;
+        if ('description' in schema && schema.description) {
+          result.description = String(schema.description);
         }
 
-        if ('format' in schema) {
-          result.format = schema.format;
+        if ('format' in schema && schema.format) {
+          result.format = String(schema.format);
         }
 
-        if ('enum' in schema) {
-          result.enum = this.normalizeEnum(schema.enum);
+        if ('enum' in schema && Array.isArray(schema.enum)) {
+          const normalizedEnum = this.normalizeEnum(schema.enum);
+          if (normalizedEnum?.length) {
+            result.enum = normalizedEnum;
+          }
+        }
+
+        if ('const' in schema && schema.const !== undefined) {
+          result.const = schema.const;
+        }
+
+        if ('anyOf' in schema && Array.isArray(schema.anyOf)) {
+          const convertedAnyOf = schema.anyOf
+            .map(s => this.convertToSchemaType(s))
+            .filter(Boolean) as SchemaType[];
+          if (convertedAnyOf.length) {
+            result.anyOf = convertedAnyOf;
+          }
+        }
+
+        if ('oneOf' in schema && Array.isArray(schema.oneOf)) {
+          const convertedOneOf = schema.oneOf
+            .map(s => this.convertToSchemaType(s))
+            .filter(Boolean) as SchemaType[];
+          if (convertedOneOf.length) {
+            result.oneOf = convertedOneOf;
+          }
         }
       }
 
-      return Object.keys(result).length > 0 ? result : undefined;
-
+      return Object.keys(result).length ? result : undefined;
     } catch (error) {
-      console.error('Schema conversion error:', error);
+      console.warn('Error converting schema:', error);
       return undefined;
     }
   }
 
   static extractSchemaType(schema: SchemaType): string {
-    if (schema.$ref) return schema.$ref.split('/').pop() || 'unknown';
-    if (!schema.type) return 'unknown';
+    if (!schema) return 'unknown';
 
-    const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
-
-    switch (type) {
-      case 'array':
-        return schema.items ? `${this.extractSchemaType(schema.items)}[]` : 'unknown[]';
-      case 'object':
-        if (!schema.properties) return 'object';
-        const props = Object.entries(schema.properties)
-          .map(([key, prop]) => `${key}: ${this.extractSchemaType(prop)}`)
-          .join(', ');
-        return `{ ${props} }`;
-      default:
-        return type;
+    if (schema.type) {
+      const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
+      return type || 'unknown';
     }
+
+    if (schema.$ref) {
+      return schema.$ref.split('/').pop() || 'unknown';
+    }
+
+    if (schema.anyOf?.length) {
+      return this.extractSchemaType(schema.anyOf[0]);
+    }
+
+    if (schema.oneOf?.length) {
+      return this.extractSchemaType(schema.oneOf[0]);
+    }
+
+    return 'unknown';
   }
 }
 
