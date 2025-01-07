@@ -1,10 +1,10 @@
+import { Button, Input } from "@/components/ui";
 import { cn } from "@/lib";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { useState } from "react";
-import { Button, Input } from "../ui";
 
 export const ApiKeyInput = () => {
-  const { apiKey, setApiKey } = useSettingsStore();
+  const { setApiKey } = useSettingsStore();
   const [inputKey, setInputKey] = useState('');
   const [error, setError] = useState('');
 

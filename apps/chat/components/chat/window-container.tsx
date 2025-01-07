@@ -4,9 +4,10 @@ import React, { useEffect } from 'react';
 import { useWindowStore } from '@/store/useWindowStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { DraggableWindow } from '@/components/ui/draggable-window';
-import { ApiKeyInput } from '@/components/swagger/api-key-input';
-import { SwaggerWrapper } from '@/components/swagger/swagger-wrapper';
+import { ApiKeyInput } from '@/components/input/api-key-input';
+
 import { ChatContent } from '@/components/chat/chat-content';
+import { SwaggerWrapper } from '../swagger-ui/swagger-wrapper';
 
 const WindowContainer = () => {
   const { apiKey } = useSettingsStore();

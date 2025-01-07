@@ -1,7 +1,6 @@
 'use client';
 
 import { cn } from '@/lib/index';
-import { useState } from 'react';
 
 interface SwitchProps {
   leftLabel?: string;
@@ -20,8 +19,9 @@ export function Switch({
 }: SwitchProps) {
 
   const handleToggle = () => {
-    onChange?.(!(value ?? false));  // 부모에게 상태 변경 위임
+    onChange?.(!(value ?? false));
   };
+
   return (
     <div className={cn('flex items-center space-x-4', className)}>
       {leftLabel && (
@@ -30,7 +30,7 @@ export function Switch({
             'cursor-pointer transition-all',
             !value ? 'font-bold text-black' : 'font-normal text-gray-500'
           )}
-          onClick={handleToggle}  // 무조건 토글 가능
+          onClick={handleToggle}
         >
           {leftLabel}
         </span>
@@ -57,7 +57,7 @@ export function Switch({
             'cursor-pointer transition-all',
             value ? 'font-bold text-black' : 'font-normal text-gray-500'
           )}
-          onClick={handleToggle}  // 무조건 토글 가능
+          onClick={handleToggle}
         >
           {rightLabel}
         </span>
@@ -65,5 +65,3 @@ export function Switch({
     </div>
   );
 }
-
-Switch.displayName = 'Switch';
