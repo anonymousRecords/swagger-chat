@@ -99,6 +99,7 @@ export const useSwaggerStore = create<SwaggerState & SwaggerActions>((set, get) 
 
       if (!validateSwaggerDocument(data)) {
         set({ error: 'Invalid Swagger/OpenAPI document' });
+        set({ isLoading: false });
         return false;
       }
 
