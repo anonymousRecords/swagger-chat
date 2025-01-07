@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { FileUploader } from '@/components/swagger/file-uploader';
 import { cn } from '@/lib/index';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useSwaggerStore } from '@/store/useSwaggerStore';
 import { useRouter } from 'next/navigation';
 
@@ -14,17 +14,10 @@ export default function LandingPage() {
   const [swaggerType, setSwaggerType] = useState<'url' | 'file'>('url');
   const {
     url,
-    file,
     setUrl,
     setType,
     submitSwagger
   } = useSwaggerStore();
-
-  useEffect(() => {
-    if (file) {
-      handleSubmit();
-    }
-  }, [file]);
 
   const handleSubmit = async () => {
     setType(swaggerType);
@@ -112,9 +105,7 @@ export default function LandingPage() {
                 </div>
               ) : (
                 <FileUploader
-                  onSuccess={() => {
-                    router.push('/chat');
-                  }}
+                  onSuccess={handleSubmit}
                 />
               )}
             </section>
