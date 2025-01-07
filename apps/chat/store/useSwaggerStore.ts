@@ -86,7 +86,8 @@ export const useSwaggerStore = create<SwaggerState & SwaggerActions>((set, get) 
   reset: () => set({
     url: '',
     file: null,
-    error: null
+    error: null,
+    isLoading: false
   }),
   submitSwagger: async () => {
     const { type, url, file } = get();
