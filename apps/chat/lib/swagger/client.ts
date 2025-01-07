@@ -27,14 +27,21 @@ interface SchemaType {
 class SwaggerParser {
   private static readonly HTTP_METHODS: HttpMethod[] = ['get', 'post', 'put', 'delete', 'patch'];
 
-  static normalizeType(type?: any): string | string[] | undefined {
+  static normalizeType(type?: unknown): string | string[] | undefined {
     if (!type) return undefined;
-    return Array.isArray(type) ? type.filter(Boolean) : type;
+    
+    if (Array.isArray(type)) {
+      return type.filter((t): t is string => typeof t === 'string' && t.trim().length > 0);
+    }
+    
+    return typeof type === 'string' && type.trim().length > 0 ? type : undefined;
   }
 
   static normalizeEnum(enumValues?: unknown[]): string[] | undefined {
     if (!enumValues?.length) return undefined;
-    return enumValues.filter((value): value is string => typeof value === 'string');
+    return enumValues.filter((value): value is string =>
+      typeof value === 'string' && value.trim().length > 0
+    );
   }
 
   static convertProperties(
