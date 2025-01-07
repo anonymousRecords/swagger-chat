@@ -1,42 +1,117 @@
-export const validateSwaggerUrl = (url: string): string | null => {
-  // URL 형식 검증
-  try {
-    new URL(url);
-  } catch {
-    return 'Invalid URL format';
+import * as yaml from 'js-yaml';
+
+/**
+ * Result type for validation operations
+ */
+type ValidationResult =
+  | { success: true }
+  | { success: false; error: string };
+
+/**
+ * Configuration for Swagger validation
+ */
+const CONFIG = {
+  maxFileSize: 10 * 1024 * 1024, // 10MB
+  validFileExtensions: ['.json', '.yaml', '.yml'] as const,
+  validUrlEndpoints: ['/swagger.json', '/api-docs', '/openapi.json'] as const
+} as const;
+
+/**
+ * Validates a URL string for Swagger/OpenAPI documentation
+ * @param url URL to validate
+ */
+export const validateSwaggerUrl = (url: string): ValidationResult => {
+  if (!url) {
+    return { success: false, error: 'URL is required' };
   }
 
-  // Swagger 문서 URL 패턴 검증
-  const validEndpoints = ['/swagger.json', '/api-docs', '/openapi.json'];
-  if (!validEndpoints.some(endpoint => url.includes(endpoint))) {
-    return 'URL must point to a Swagger/OpenAPI documentation';
-  }
+  // Swagger document URL pattern validation
+  const hasValidEndpoint = CONFIG.validUrlEndpoints.some(endpoint =>
+    url.toLowerCase().includes(endpoint.toLowerCase())
+  );
 
-  return null;
+  return hasValidEndpoint
+    ? { success: true }
+    : { success: false, error: 'URL must point to a Swagger/OpenAPI documentation' };
+};
+
+/**
+ * File metadata for logging
+ */
+interface FileMetadata {
+  name: string;
+  type: string;
+  size: number;
+  extension: string;
 }
 
-export const validateSwaggerFile = (file: File): boolean => {
-  console.log('Validating file:', {
-    name: file.name,
-    type: file.type,
-    size: file.size
-  });
+/**
+ * Extracts metadata from a file
+ * @param file File to extract metadata from
+ */
+const getFileMetadata = (file: File): FileMetadata => ({
+  name: file.name,
+  type: file.type,
+  size: file.size,
+  extension: '.' + file.name.split('.').pop()?.toLowerCase()
+});
 
-  // 파일 크기 제한 (10MB)
-  if (file.size > 10 * 1024 * 1024) {
-    console.warn('File size exceeds 10MB');
+/**
+ * Validates a file for Swagger/OpenAPI documentation
+ * @param file File to validate
+ */
+export const validateSwaggerFile = (file: File): ValidationResult => {
+  if (!file) {
+    return { success: false, error: 'File is required' };
+  }
+
+  const metadata = getFileMetadata(file);
+
+  // Size validation
+  if (metadata.size > CONFIG.maxFileSize) {
+    const error = `File size exceeds ${CONFIG.maxFileSize / 1024 / 1024}MB`;
+    console.warn(error);
+    return { success: false, error };
+  }
+
+  // Extension validation
+  const hasValidExtension = CONFIG.validFileExtensions.some(ext =>
+    metadata.extension === ext
+  );
+
+  return hasValidExtension
+    ? { success: true }
+    : { success: false, error: `File must have one of these extensions: ${CONFIG.validFileExtensions.join(', ')}` };
+};
+
+/**
+ * Parse file content based on file extension
+ * @param content File content as string
+ * @param fileName Name of the file (used to determine the format)
+ */
+export const parseFileContent = (content: string, fileName: string): unknown => {
+  const isYaml = fileName.toLowerCase().endsWith('.yml') ||
+    fileName.toLowerCase().endsWith('.yaml');
+
+  return isYaml ? yaml.load(content) : JSON.parse(content);
+};
+
+/**
+ * Validates basic structure of a Swagger/OpenAPI document
+ * @param doc Document to validate
+ */
+export const validateSwaggerDocument = (doc: unknown): boolean => {
+  if (!doc || typeof doc !== 'object') {
     return false;
   }
 
-  // 파일 확장자 검증
-  const fileName = file.name.toLowerCase();
-  const validExtensions = ['.json', '.yaml', '.yml'];
-  const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
+  const swagger = doc as Record<string, unknown>;
 
-  console.log('File validation result:', {
-    hasValidExtension,
-    fileName
-  });
-
-  return hasValidExtension;
+  return (
+    // Must have either swagger or openapi version
+    (('swagger' in swagger) || ('openapi' in swagger)) &&
+    // Must have paths object
+    'paths' in swagger &&
+    typeof swagger.paths === 'object'
+  );
 };

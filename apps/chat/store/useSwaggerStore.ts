@@ -1,89 +1,125 @@
 import { create } from "zustand"
-import { validateSwaggerFile, validateSwaggerUrl } from "@/lib/utils/validation"
+import { validateSwaggerUrl, validateSwaggerFile, validateSwaggerDocument, parseFileContent } from "@/lib/utils/validation"
 
+/**
+ * Type of Swagger document input
+ */
+type SwaggerType = 'url' | 'file';
+
+/**
+ * Swagger store state
+ */
 interface SwaggerState {
-  type: 'url' | 'file'
+  /**
+   * Input type (URL or File)
+   */
+  type: SwaggerType
+  /**
+   * Swagger URL
+   */
   url: string
+  /**
+   * Swagger file
+   */
   file: File | null
+  /**
+   * Loading state
+   */
   isLoading: boolean
+  /**
+   * Error message
+   */
   error: string | null
 }
+
+/**
+ * Swagger store actions
+ */
 interface SwaggerActions {
-  setType: (type: 'url' | 'file') => void
+  setType: (type: SwaggerType) => void
   setUrl: (url: string) => void
   setFile: (file: File | null) => void
   reset: () => void
   submitSwagger: () => Promise<boolean>
 }
 
+/**
+ * Store for managing Swagger document state and operations
+ * @example
+ * ```ts
+ * const { url, setUrl, submitSwagger } = useSwaggerStore();
+ * await submitSwagger();
+ * ```
+ */
 export const useSwaggerStore = create<SwaggerState & SwaggerActions>((set, get) => ({
+  // State
   type: 'url',
   url: '',
   file: null,
   isLoading: false,
   error: null,
 
-  // actions
+  // Actions
   setType: (type) => set({ type }),
-  setUrl: (url) => set({ url }),
-  setFile: (file) => set({ file }),
-  reset: () => set({ type: 'url', url: '', file: null }),
-  submitSwagger: async () => {
-    const { type, url, file } = get()
-    set({ isLoading: true, error: null })
-
-    try {
-      if (type === 'url') {
-        const error = validateSwaggerUrl(url)
-        if (error) {
-          set({ error, isLoading: false })
-          return false
-        }
-
-        const response = await fetch(url);
-        if (!response.ok) {
-          set({ error: 'Failed to fetch Swagger document', isLoading: false })
-          return false;
-        }
-
-        const swaggerDoc = await response.json();
-        return true;
-      } else {
-        if (!file) {
-          set({ error: 'File is required', isLoading: false })
-          return false
-        }
-
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = async (e) => {
-            try {
-              const swaggerDoc = JSON.parse(e.target?.result as string);
-              if (!validateSwaggerFile(swaggerDoc)) {
-                throw new Error('Invalid Swagger file');
-              }
-              set({ error: null, isLoading: false })
-              resolve(true);
-            } catch (error) {
-              set({ error: 'Invalid Swagger file', isLoading: false })
-              resolve(false);
-            }
-          };
-
-          reader.onerror = () => {
-            set({ error: 'Failed to read file', isLoading: false })
-            resolve(false);
-          };
-
-          reader.readAsText(file);
-        });
-      }
-    } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
-        isLoading: false
-      })
-      return false
+  setUrl: (url) => {
+    const validation = validateSwaggerUrl(url);
+    if (!validation.success) {
+      set({ error: validation.error });
+      return;
     }
+    set({ url, error: null });
+  },
+  setFile: (file) => {
+    if (!file) {
+      set({ file: null, error: null });
+      return;
+    }
+
+    const validation = validateSwaggerFile(file);
+    if (!validation.success) {
+      set({ error: validation.error });
+      return;
+    }
+
+    set({ file, error: null });
+  },
+  reset: () => set({
+    url: '',
+    file: null,
+    error: null
+  }),
+  submitSwagger: async () => {
+    const { type, url, file } = get();
+    set({ isLoading: true, error: null });
+
+    if (type === 'url') {
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (!validateSwaggerDocument(data)) {
+        set({ error: 'Invalid Swagger/OpenAPI document' });
+        return false;
+      }
+
+      set({ isLoading: false });
+      return true;
+    }
+
+    if (file) {
+      const content = await file.text();
+      const data = parseFileContent(content, file.name);
+
+      if (!validateSwaggerDocument(data)) {
+        set({ error: 'Invalid Swagger/OpenAPI document' });
+        set({ isLoading: false });
+        return false;
+      }
+
+      set({ isLoading: false });
+      return true;
+    }
+
+    set({ isLoading: false });
+    return false;
   }
 }))
