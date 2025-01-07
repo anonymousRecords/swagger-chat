@@ -41,7 +41,8 @@ export function FileUploader({
 
     if (!validateSwaggerDocument(parsedContent)) {
       setFile(null);
-      console.error('File is not a valid Swagger/OpenAPI document. Missing required fields (swagger/openapi version or paths).');
+      console.error('Invalid Swagger/OpenAPI document. Please check the file format and required fields.');
+      return;
     }
 
     handleFileSuccess(file);
