@@ -2,17 +2,24 @@ import { OpenApiV3_1 } from '@samchon/openapi';
 import { createChatCompletion } from '../openai/client';
 import type { SimpleChatMessage, SimpleChatRole } from '../../types/openai';
 import { convertToSchemaType, extractSchemaType } from '../swagger/client';
+import { decryptApiKey } from '@/utils/encryption';
 
 export class ChatService {
   private swaggerDoc: OpenApiV3_1.IDocument | null = null;
   private messages: SimpleChatMessage[] = [];
   private locale: string;
+  private encryptedApiKey: string;
 
   constructor(
-    private apiKey: string,
+    encryptedApiKey: string,
     locale: string = 'en'
   ) {
+    this.encryptedApiKey = encryptedApiKey;
     this.locale = locale.toLowerCase().split('-')[0];
+  }
+
+  private async getDecryptedApiKey(): Promise<string> {
+    return await decryptApiKey(this.encryptedApiKey);
   }
 
   async initializeWithFile(file: File) {
@@ -231,25 +238,31 @@ Please provide detailed and accurate information based on this specific API docu
 
   async sendMessage(userMessage: string): Promise<string> {
     if (!this.swaggerDoc) {
-      throw new Error('Swagger 문서가 초기화되지 않았습니다. initializeWithFile() 또는 initializeWithUrl()를 먼저 호출해주세요.');
+      throw new Error('Swagger 문서가 초기화되지 않았습니다.');
     }
 
-    this.messages.push({ role: 'user' as SimpleChatRole, content: userMessage });
+    this.messages.push({
+      role: 'user',
+      content: userMessage,
+    });
 
     try {
-      const assistantMessage = await createChatCompletion(
-        this.apiKey,
+      const decryptedApiKey = await this.getDecryptedApiKey();
+      const response = await createChatCompletion(
+        decryptedApiKey,
         this.messages,
         this.locale
       );
-      this.messages.push({ role: 'assistant' as SimpleChatRole, content: assistantMessage });
-      return assistantMessage;
+
+      this.messages.push({
+        role: 'assistant',
+        content: response,
+      });
+
+      return response;
     } catch (error) {
-      this.messages.pop();
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('An error occurred while calling OpenAI API.');
+      console.error('Failed to get chat completion:', error);
+      throw error;
     }
   }
 }

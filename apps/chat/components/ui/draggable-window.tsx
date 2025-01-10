@@ -3,33 +3,31 @@
 import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/index';
 
+interface Position {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface DraggableWindowProps extends React.HTMLAttributes<HTMLDivElement> {
-  initialWidth?: number;
-  initialHeight?: number;
+  position: Position;
+  onPositionChange?: (position: Position) => void;
+  title?: string;
   minWidth?: number;
   minHeight?: number;
-  title?: string;
 }
 
 export function DraggableWindow({
   children,
   className,
-  initialWidth = 400,
-  initialHeight = 300,
+  position,
+  onPositionChange,
+  title = 'Window',
   minWidth = 200,
   minHeight = 150,
-  title = 'Window',
   ...props
 }: DraggableWindowProps) {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [size, setSize] = useState({
-    width: typeof props.style?.width === 'number'
-      ? props.style.width
-      : parseInt(props.style?.width?.toString() || `${initialWidth}`, 10),
-    height: typeof props.style?.height === 'number'
-      ? props.style.height
-      : parseInt(props.style?.height?.toString() || `${initialHeight}`, 10)
-  });
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [resizeDirection, setResizeDirection] = useState<string | null>(null);
@@ -42,13 +40,12 @@ export function DraggableWindow({
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (props.style?.position === 'static') return;
-
       if (isDragging) {
         const deltaX = e.clientX - dragStartPos.current.x;
         const deltaY = e.clientY - dragStartPos.current.y;
 
-        setPosition({
+        onPositionChange?.({
+          ...position,
           x: originalPos.current.x + deltaX,
           y: originalPos.current.y + deltaY,
         });
@@ -60,31 +57,39 @@ export function DraggableWindow({
 
         let newWidth = originalSize.current.width;
         let newHeight = originalSize.current.height;
+        let newX = originalPos.current.x;
+        let newY = originalPos.current.y;
 
+        // 우측 리사이즈
         if (resizeDirection?.includes('e')) {
-          newWidth += deltaX;
+          newWidth = Math.max(minWidth, originalSize.current.width + deltaX);
         }
-        if (resizeDirection?.includes('s')) {
-          newHeight += deltaY;
-        }
+        // 좌측 리사이즈
         if (resizeDirection?.includes('w')) {
-          newWidth -= deltaX;
-          setPosition(prev => ({
-            ...prev,
-            x: prev.x + deltaX
-          }));
+          const adjustedWidth = Math.max(minWidth, originalSize.current.width - deltaX);
+          if (adjustedWidth !== newWidth) {
+            newX = originalPos.current.x + (originalSize.current.width - adjustedWidth);
+            newWidth = adjustedWidth;
+          }
         }
+        // 하단 리사이즈
+        if (resizeDirection?.includes('s')) {
+          newHeight = Math.max(minHeight, originalSize.current.height + deltaY);
+        }
+        // 상단 리사이즈
         if (resizeDirection?.includes('n')) {
-          newHeight -= deltaY;
-          setPosition(prev => ({
-            ...prev,
-            y: prev.y + deltaY
-          }));
+          const adjustedHeight = Math.max(minHeight, originalSize.current.height - deltaY);
+          if (adjustedHeight !== newHeight) {
+            newY = originalPos.current.y + (originalSize.current.height - adjustedHeight);
+            newHeight = adjustedHeight;
+          }
         }
 
-        setSize({
-          width: Math.max(minWidth, newWidth),
-          height: Math.max(minHeight, newHeight)
+        onPositionChange?.({
+          x: newX,
+          y: newY,
+          width: newWidth,
+          height: newHeight,
         });
       }
     };
@@ -93,37 +98,56 @@ export function DraggableWindow({
       setIsDragging(false);
       setIsResizing(false);
       setResizeDirection(null);
+      document.body.style.cursor = 'default';
     };
 
     if (isDragging || isResizing) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
+
+      // 리사이징 중일 때 커서 스타일 유지
+      if (isResizing) {
+        document.body.style.cursor = resizeDirection?.includes('n') && resizeDirection?.includes('w')
+          ? 'nw-resize'
+          : resizeDirection?.includes('n') && resizeDirection?.includes('e')
+          ? 'ne-resize'
+          : resizeDirection?.includes('s') && resizeDirection?.includes('w')
+          ? 'sw-resize'
+          : resizeDirection?.includes('s') && resizeDirection?.includes('e')
+          ? 'se-resize'
+          : resizeDirection?.includes('n')
+          ? 'n-resize'
+          : resizeDirection?.includes('s')
+          ? 's-resize'
+          : resizeDirection?.includes('w')
+          ? 'w-resize'
+          : 'e-resize';
+      }
     }
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'default';
     };
-  }, [isDragging, isResizing, resizeDirection, minWidth, minHeight]);
+  }, [isDragging, isResizing, resizeDirection, minWidth, minHeight, onPositionChange]);
 
   const startDragging = (e: React.MouseEvent) => {
     const headerElement = (e.target as HTMLElement).closest('.draggable-header');
     if (headerElement) {
       setIsDragging(true);
       dragStartPos.current = { x: e.clientX, y: e.clientY };
-      originalPos.current = position;
+      originalPos.current = { x: position.x, y: position.y };
     }
   };
 
   const startResizing = (direction: string) => (e: React.MouseEvent) => {
-    if (props.style?.position === 'static') return;
-
     e.stopPropagation();
     setIsResizing(true);
     setResizeDirection(direction);
     resizeStartPos.current = { x: e.clientX, y: e.clientY };
-    originalSize.current = size;
-    originalPos.current = position;
+    originalSize.current = { width: position.width, height: position.height };
+    originalPos.current = { x: position.x, y: position.y };
   };
 
   return (
@@ -133,22 +157,19 @@ export function DraggableWindow({
         'fixed bg-white shadow-lg rounded-lg overflow-hidden',
         'border border-gray-200',
         isDragging && 'cursor-grabbing',
-        className,
-        props.style?.position === 'static' && 'static'
+        className
       )}
       style={{
-        ...(props.style?.position !== 'static' ? {
-          transform: `translate(${position.x}px, ${position.y}px)`,
-        } : {}),
-        width: size.width,
-        height: size.height,
+        transform: `translate(${position.x}px, ${position.y}px)`,
+        width: position.width,
+        height: position.height,
         maxWidth: '100vw',
         boxSizing: 'border-box',
       }}
       {...props}
     >
       <div
-        className="h-10 bg-gray-100 border-b border-gray-200 flex items-center px-4 cursor-grab"
+        className="draggable-header h-10 bg-gray-100 border-b border-gray-200 flex items-center px-4 cursor-grab"
         onMouseDown={startDragging}
       >
         <h3 className="text-sm font-medium text-gray-700">{title}</h3>
@@ -158,42 +179,41 @@ export function DraggableWindow({
         {children}
       </div>
 
-      {props.style?.position !== 'static' && (
-        <>
-          <div
-            className="absolute top-0 left-0 w-2 h-2 cursor-nw-resize"
-            onMouseDown={startResizing('nw')}
-          />
-          <div
-            className="absolute top-0 right-0 w-2 h-2 cursor-ne-resize"
-            onMouseDown={startResizing('ne')}
-          />
-          <div
-            className="absolute bottom-0 left-0 w-2 h-2 cursor-sw-resize"
-            onMouseDown={startResizing('sw')}
-          />
-          <div
-            className="absolute bottom-0 right-0 w-2 h-2 cursor-se-resize"
-            onMouseDown={startResizing('se')}
-          />
-          <div
-            className="absolute top-0 left-1/2 w-8 h-2 -translate-x-1/2 cursor-n-resize"
-            onMouseDown={startResizing('n')}
-          />
-          <div
-            className="absolute bottom-0 left-1/2 w-8 h-2 -translate-x-1/2 cursor-s-resize"
-            onMouseDown={startResizing('s')}
-          />
-          <div
-            className="absolute left-0 top-1/2 w-2 h-8 -translate-y-1/2 cursor-w-resize"
-            onMouseDown={startResizing('w')}
-          />
-          <div
-            className="absolute right-0 top-1/2 w-2 h-8 -translate-y-1/2 cursor-e-resize"
-            onMouseDown={startResizing('e')}
-          />
-        </>
-      )}
+      {/* Corner resize handles */}
+      <div
+        className="absolute top-0 left-0 w-4 h-4 cursor-nw-resize hover:bg-gray-100/50 -translate-x-1/2 -translate-y-1/2"
+        onMouseDown={startResizing('nw')}
+      />
+      <div
+        className="absolute top-0 right-0 w-4 h-4 cursor-ne-resize hover:bg-gray-100/50 translate-x-1/2 -translate-y-1/2"
+        onMouseDown={startResizing('ne')}
+      />
+      <div
+        className="absolute bottom-0 left-0 w-4 h-4 cursor-sw-resize hover:bg-gray-100/50 -translate-x-1/2 translate-y-1/2"
+        onMouseDown={startResizing('sw')}
+      />
+      <div
+        className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize hover:bg-gray-100/50 translate-x-1/2 translate-y-1/2"
+        onMouseDown={startResizing('se')}
+      />
+
+      {/* Edge resize handles */}
+      <div
+        className="absolute top-0 left-1/2 w-12 h-4 -translate-x-1/2 -translate-y-1/2 cursor-n-resize hover:bg-gray-100/50"
+        onMouseDown={startResizing('n')}
+      />
+      <div
+        className="absolute bottom-0 left-1/2 w-12 h-4 -translate-x-1/2 translate-y-1/2 cursor-s-resize hover:bg-gray-100/50"
+        onMouseDown={startResizing('s')}
+      />
+      <div
+        className="absolute left-0 top-1/2 w-4 h-12 -translate-x-1/2 -translate-y-1/2 cursor-w-resize hover:bg-gray-100/50"
+        onMouseDown={startResizing('w')}
+      />
+      <div
+        className="absolute right-0 top-1/2 w-4 h-12 translate-x-1/2 -translate-y-1/2 cursor-e-resize hover:bg-gray-100/50"
+        onMouseDown={startResizing('e')}
+      />
     </div>
   );
 }

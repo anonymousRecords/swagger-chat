@@ -1,11 +1,10 @@
-import type { Metadata } from "next";
-import "./globals.css";
 import { pretendard } from '@/public/fonts/font';
-import 'swagger-ui-react/swagger-ui.css';
+// import 'swagger-ui-react/swagger-ui.css';
+import './globals.css';
 
-export const metadata: Metadata = {
+export const metadata = {
   title: "Swagger Chat",
-  description: "Swagger Chat",
+  description: "Chat with your Swagger API Documentation",
 };
 
 export default function RootLayout({
@@ -14,10 +13,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${pretendard.variable}antialiased`}
-      >
+    <html>
+      <body className={`${pretendard.className} antialiased`}>
         {children}
       </body>
     </html>

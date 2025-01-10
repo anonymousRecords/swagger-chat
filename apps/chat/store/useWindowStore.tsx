@@ -13,56 +13,81 @@ interface WindowState {
   swaggerWindow: WindowPosition;
   chatWindow: WindowPosition;
   isMobile: boolean;
+  layoutMode: 'draggable' | 'split';
 
   // Actions
   setSwaggerWindow: (position: Partial<WindowPosition>) => void;
   setChatWindow: (position: Partial<WindowPosition>) => void;
   setIsMobile: (isMobile: boolean) => void;
+  setLayoutMode: (mode: 'draggable' | 'split') => void;
   resetPositions: () => void;
 }
 
-const MOBILE_DEFAULTS = {
-  swaggerWindow: {
-    x: 0,
-    y: 0,
+const getInitialWindowSizes = () => {
+  if (typeof window === 'undefined') {
+    return {
+      width: 1024,
+      height: 768
+    };
+  }
+  return {
     width: window.innerWidth,
-    height: window.innerHeight / 2,
-  },
-  chatWindow: {
-    x: 0,
-    y: window.innerHeight / 2,
-    width: window.innerWidth,
-    height: window.innerHeight / 2,
-  },
+    height: window.innerHeight
+  };
 };
 
-const DESKTOP_DEFAULTS = {
-  swaggerWindow: {
-    x: 50,
-    y: 50,
-    width: 600,
-    height: 500,
-  },
-  chatWindow: {
-    x: 700,
-    y: 100,
-    width: 500,
-    height: 500,
-  },
+const getDefaultPositions = (isMobile: boolean) => {
+  const { width, height } = getInitialWindowSizes();
+  
+  if (isMobile) {
+    return {
+      swaggerWindow: {
+        x: 0,
+        y: 0,
+        width: width,
+        height: height / 2,
+      },
+      chatWindow: {
+        x: 0,
+        y: height / 2,
+        width: width,
+        height: height / 2,
+      },
+    };
+  }
+
+  return {
+    swaggerWindow: {
+      x: 50,
+      y: 50,
+      width: 600,
+      height: 500,
+    },
+    chatWindow: {
+      x: 700,
+      y: 100,
+      width: 500,
+      height: 500,
+    },
+  };
 };
 
+const getInitialState = () => {
+  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+  const defaultPositions = getDefaultPositions(isMobile);
+
+  return {
+    ...defaultPositions,
+    isMobile,
+    layoutMode: 'draggable' as const,
+  };
+};
 
 export const useWindowStore = create<WindowState>()(
   devtools(
     (set) => ({
       // Initial states
-      swaggerWindow: typeof window !== 'undefined' && window.innerWidth < 768
-        ? MOBILE_DEFAULTS.swaggerWindow
-        : DESKTOP_DEFAULTS.swaggerWindow,
-      chatWindow: typeof window !== 'undefined' && window.innerWidth < 768
-        ? MOBILE_DEFAULTS.chatWindow
-        : DESKTOP_DEFAULTS.chatWindow,
-      isMobile: false,
+      ...getInitialState(),
 
       // Actions
       setSwaggerWindow: (position) =>
@@ -77,28 +102,30 @@ export const useWindowStore = create<WindowState>()(
 
       setIsMobile: (isMobile) =>
         set((state) => {
-          const defaults = isMobile ? MOBILE_DEFAULTS : DESKTOP_DEFAULTS;
+          const defaults = getDefaultPositions(isMobile);
           return {
             isMobile,
-            // 현재 위치 유지, 너비/높이만 기본값으로 변경
             swaggerWindow: {
+              ...defaults.swaggerWindow,
               x: state.swaggerWindow.x,
               y: state.swaggerWindow.y,
-              width: defaults.swaggerWindow.width,
-              height: defaults.swaggerWindow.height,
             },
             chatWindow: {
+              ...defaults.chatWindow,
               x: state.chatWindow.x,
               y: state.chatWindow.y,
-              width: defaults.chatWindow.width,
-              height: defaults.chatWindow.height,
             },
           };
         }),
 
+      setLayoutMode: (mode) =>
+        set(() => ({
+          layoutMode: mode,
+        })),
+
       resetPositions: () =>
         set((state) => {
-          const defaults = state.isMobile ? MOBILE_DEFAULTS : DESKTOP_DEFAULTS;
+          const defaults = getDefaultPositions(state.isMobile);
           return {
             swaggerWindow: defaults.swaggerWindow,
             chatWindow: defaults.chatWindow,

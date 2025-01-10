@@ -1,23 +1,24 @@
 import { ChatService } from "@/lib/chat/service";
 import { useChatStore } from "@/store/useChatStore";
-import { useSettingsStore } from "@/store/useSettingsStore";
 import { useSwaggerStore } from "@/store/useSwaggerStore";
-import { useEffect, useRef, useState } from "react";
+import { useApiKeyStore } from "@/store/useApiKeyStore";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { MessageHistory } from "./message-history";
 import { TextArea } from "../ui";
+import { useThrottle } from "@/hooks/useThrottle";
 
 export const ChatContent = () => {
   const { addMessage } = useChatStore();
-  const { apiKey } = useSettingsStore();
   const { url } = useSwaggerStore();
+  const { encryptedApiKey } = useApiKeyStore();
   const [isLoading, setIsLoading] = useState(false);
   const [inputMessage, setInputMessage] = useState('');
   const chatServiceRef = useRef<ChatService | null>(null);
 
   useEffect(() => {
-    if (apiKey && url) {
+    if (encryptedApiKey && url) {
       const locale = typeof window !== 'undefined' ? window.navigator.language : 'en';
-      const chatService = new ChatService(apiKey, locale);
+      const chatService = new ChatService(encryptedApiKey, locale);
       chatServiceRef.current = chatService;
 
       (async () => {
@@ -28,23 +29,21 @@ export const ChatContent = () => {
         }
       })();
     }
-  }, [apiKey, url]);
+  }, [encryptedApiKey, url]);
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || !chatServiceRef.current) return;
-
-    const userMessage = inputMessage.trim();
-
-    addMessage({
-      role: 'user',
-      content: userMessage
-    });
+  const sendMessage = useCallback(async (message: string) => {
+    if (!message.trim() || !chatServiceRef.current) return;
 
     setIsLoading(true);
     setInputMessage('');
 
     try {
-      const assistantMessageContent = await chatServiceRef.current.sendMessage(userMessage);
+      addMessage({
+        role: 'user',
+        content: message.trim()
+      });
+
+      const assistantMessageContent = await chatServiceRef.current.sendMessage(message.trim());
 
       addMessage({
         role: 'assistant',
@@ -59,23 +58,24 @@ export const ChatContent = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [addMessage]);
+
+  const handleSendMessage = useThrottle(sendMessage, 1000);
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto min-h-0">
         <MessageHistory isLoading={isLoading} />
       </div>
-      <div className="border-t border-gray-300 pt-4">
-        <div className="flex space-x-1">
-          <TextArea
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onSubmit={handleSendMessage}
-            placeholder="Type your message..."
-            rows={3}
-          />
-        </div>
+      <div className="flex-shrink-0 border-t border-gray-300 p-4">
+        <TextArea
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
+          onSubmit={handleSendMessage}
+          placeholder="Type your message..."
+          rows={5}
+          className="w-full"
+        />
       </div>
     </div>
   );

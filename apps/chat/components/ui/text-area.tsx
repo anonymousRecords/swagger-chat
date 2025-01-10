@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { cn } from '@/lib/index';
 
 interface TextAreaProps extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'onSubmit'> {
@@ -6,9 +6,7 @@ interface TextAreaProps extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaEl
   error?: string;
   className?: string;
   wrapperClassName?: string;
-  autoResize?: boolean;
   label?: string;
-  maxRows?: number;
 }
 
 export function TextArea({
@@ -16,33 +14,20 @@ export function TextArea({
   error,
   className,
   wrapperClassName,
-  autoResize = true,
-  rows = 1,
-  maxRows = 5,
   placeholder,
   value,
   onChange,
   label,
+  rows = 3,
   ...props
 }: TextAreaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    if (autoResize && textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      const newHeight = Math.min(
-        textareaRef.current.scrollHeight,
-        textareaRef.current.rows * 24 * maxRows
-      );
-      textareaRef.current.style.height = `${newHeight}px`;
-    }
-  }, [value, autoResize, maxRows]);
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (value && typeof value === 'string' && value.trim()) {
-        onSubmit?.(value);
+      if (value && typeof value === 'string' && value.trim() && onSubmit) {
+        onSubmit(value);
       }
     }
   };
@@ -63,18 +48,18 @@ export function TextArea({
           rows={rows}
           placeholder={placeholder}
           className={cn(
-            'w-full px-4 py-3 text-base transition-colors resize-none overflow-hidden',
+            'w-full px-4 py-3 text-base transition-colors resize-none',
             'rounded-t-lg border-0',
             'bg-white ring-1 ring-inset ring-gray-300',
             'focus:outline-none focus:ring-1 focus:ring-gray-500',
             'placeholder:text-gray-400',
+            'overflow-y-auto',
             error && 'ring-red-500 focus:ring-red-500',
             'disabled:bg-gray-50 disabled:text-gray-500 disabled:ring-gray-200',
             className
           )}
           style={{
-            minHeight: `${rows * 24}px`,
-            maxHeight: `${maxRows * 24}px`
+            height: `${Math.max(24 * rows, 72)}px`
           }}
           {...props}
         />
