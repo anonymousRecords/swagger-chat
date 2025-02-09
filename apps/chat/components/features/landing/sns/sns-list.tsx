@@ -54,15 +54,13 @@ export function SNSList({ list }: SNSListProps) {
             whileTap={{ scale: 0.9 }}
             target="_blank"
           >
-            <a href={sns.url}>
-              <motion.img
-                src={sns.imgUrl}
-                alt={sns.name}
-                className="h-4 w-4 md:h-6 md:w-6"
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.5 }}
-              />
-            </a>
+            <motion.img
+              src={sns.imgUrl}
+              alt={sns.name}
+              className="h-4 w-4 md:h-6 md:w-6"
+              whileHover={{ rotate: 360 }}
+              transition={{ duration: 0.5 }}
+            />
           </MotionLink>
         ))}
       </motion.nav>
